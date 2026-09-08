@@ -39,7 +39,43 @@
                 <p class="mt-7 leading-7 text-gray-600">
                     {{ $product->description }}
                 </p>
+@php
+    $isFavorite = in_array(
+        $product->id,
+        session('wishlist', []),
+        true
+    );
+@endphp
 
+<form
+    action="{{ route('wishlist.toggle', $product) }}"
+    method="POST"
+    class="mt-5"
+>
+    @csrf
+
+    <button
+        type="submit"
+        class="inline-flex items-center gap-2 rounded-full
+               border border-gray-300 px-5 py-2.5
+               font-semibold transition hover:border-rose-500
+               hover:text-rose-600"
+    >
+        <span class="text-xl">
+            {{ $isFavorite ? '❤️' : '♡' }}
+        </span>
+
+        {{ $isFavorite
+            ? 'Remove from Wishlist'
+            : 'Add to Wishlist' }}
+    </button>
+</form>
+
+@if (session('success'))
+    <div class="mt-5 rounded-xl bg-green-100 p-4 text-green-800">
+        {{ session('success') }}
+    </div>
+@endif
               <div class="mt-8">
     @if (session('error'))
         <div class="mb-5 rounded-xl bg-red-100 p-4 text-red-700">

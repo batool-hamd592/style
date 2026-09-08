@@ -4,6 +4,7 @@ use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Store\WishlistController;
 use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\CategoryController;
@@ -83,4 +84,19 @@ Route::delete('/cart', [CartController::class, 'clear'])
 Route::get('/orders/{order}', [CustomerOrderController::class, 'show'])
     ->name('orders.show');
 });
+Route::get('/wishlist', [WishlistController::class, 'index'])
+    ->name('wishlist.index');
+
+Route::post(
+    '/wishlist/{product}/toggle',
+    [WishlistController::class, 'toggle']
+)->name('wishlist.toggle');
+
+Route::delete(
+    '/wishlist/{product}',
+    [WishlistController::class, 'destroy']
+)->name('wishlist.destroy');
+
+Route::delete('/wishlist', [WishlistController::class, 'clear'])
+    ->name('wishlist.clear');
 require __DIR__.'/auth.php';

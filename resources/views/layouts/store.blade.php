@@ -93,6 +93,25 @@
         </span>
     @endif
 </a>
+@php
+    $wishlistCount = count(session('wishlist', []));
+@endphp
+
+<a
+    href="{{ route('wishlist.index') }}"
+    class="relative rounded-full p-2 text-gray-700 hover:bg-gray-100"
+    aria-label="Wishlist"
+>
+    <span class="text-xl">♡</span>
+
+    @if ($wishlistCount > 0)
+        <span class="absolute -right-1 -top-1 flex h-5 min-w-5
+                     items-center justify-center rounded-full bg-rose-600
+                     px-1 text-xs font-bold text-white">
+            {{ $wishlistCount }}
+        </span>
+    @endif
+</a>
                 @auth
                     @if (auth()->user()->isAdmin())
                         <a

@@ -127,6 +127,7 @@ class StorefrontController extends Controller
         ]);
 
         $relatedProducts = Product::query()
+        ->with('category')
             ->withSum('variants', 'stock')
             ->where('is_active', true)
             ->where('category_id', $product->category_id)
