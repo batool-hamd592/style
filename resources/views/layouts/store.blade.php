@@ -103,10 +103,10 @@
                         </a>
                     @else
                         <a
-                            href="{{ route('dashboard') }}"
+                            href="{{ route('orders.index') }}"
                             class="text-sm font-semibold text-gray-700"
                         >
-                            My Account
+                         My Orders
                         </a>
                     @endif
                 @else

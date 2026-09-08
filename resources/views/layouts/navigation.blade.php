@@ -40,6 +40,12 @@
         >
             Products
         </x-nav-link>
+        <x-nav-link
+    :href="route('admin.orders.index')"
+    :active="request()->routeIs('admin.orders.*')"
+>
+    Orders
+</x-nav-link>
     @endif
 </div>
             </div>

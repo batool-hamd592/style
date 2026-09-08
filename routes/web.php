@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Store\OrderController as CustomerOrderController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 Route::get('/', [StorefrontController::class, 'home'])
     ->name('store.home');
 
@@ -23,6 +25,7 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 Route::middleware(['auth', 'admin'])
@@ -38,6 +41,16 @@ Route::middleware(['auth', 'admin'])
             ->except('show');
             Route::resource('products', ProductController::class)
     ->except('show');
+    Route::get('/orders', [AdminOrderController::class, 'index'])
+    ->name('orders.index');
+
+Route::get('/orders/{order}', [AdminOrderController::class, 'show'])
+    ->name('orders.show');
+
+Route::patch(
+    '/orders/{order}/status',
+    [AdminOrderController::class, 'updateStatus']
+)->name('orders.status');
     });
 Route::get('/cart', [CartController::class, 'index'])
     ->name('cart.index');
@@ -64,5 +77,10 @@ Route::delete('/cart', [CartController::class, 'clear'])
         '/checkout/success/{order}',
         [CheckoutController::class, 'success']
     )->name('checkout.success');
+    Route::get('/orders', [CustomerOrderController::class, 'index'])
+    ->name('orders.index');
+
+Route::get('/orders/{order}', [CustomerOrderController::class, 'show'])
+    ->name('orders.show');
 });
 require __DIR__.'/auth.php';
