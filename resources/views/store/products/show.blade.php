@@ -40,35 +40,97 @@
                     {{ $product->description }}
                 </p>
 
-                <div class="mt-8">
-                    <h2 class="font-semibold">Available options</h2>
+              <div class="mt-8">
+    @if (session('error'))
+        <div class="mb-5 rounded-xl bg-red-100 p-4 text-red-700">
+            {{ session('error') }}
+        </div>
+    @endif
 
-                    <div class="mt-4 grid gap-3 sm:grid-cols-2">
-                        @forelse ($product->variants as $variant)
-                            <div class="rounded-xl border border-gray-200
-                                        bg-white p-4">
-                                <div class="flex justify-between">
-                                    <span class="font-semibold">
-                                        Size {{ $variant->size }}
-                                    </span>
+    @if ($product->variants->isNotEmpty())
+        <form
+            action="{{ route('cart.store') }}"
+            method="POST"
+            class="space-y-5"
+        >
+            @csrf
 
-                                    <span class="text-sm text-gray-500">
-                                        {{ $variant->stock }} available
-                                    </span>
-                                </div>
+            <div>
+                <label
+                    for="variant_id"
+                    class="block font-semibold text-gray-900"
+                >
+                    Select size and color
+                </label>
 
-                                <p class="mt-1 text-sm text-gray-600">
-                                    Color: {{ $variant->color }}
-                                </p>
-                            </div>
-                        @empty
-                            <div class="rounded-xl bg-red-50 p-4
-                                        text-red-700 sm:col-span-2">
-                                This product is currently out of stock.
-                            </div>
-                        @endforelse
-                    </div>
-                </div>
+                <select
+                    id="variant_id"
+                    name="variant_id"
+                    class="mt-2 block w-full rounded-xl border-gray-300
+                           focus:border-gray-900 focus:ring-gray-900"
+                >
+                    <option value="">Choose an option</option>
+
+                    @foreach ($product->variants as $variant)
+                        <option
+                            value="{{ $variant->id }}"
+                            @selected(old('variant_id') == $variant->id)
+                        >
+                            Size {{ $variant->size }}
+                            · {{ $variant->color }}
+                            · {{ $variant->stock }} available
+                        </option>
+                    @endforeach
+                </select>
+
+                @error('variant_id')
+                    <p class="mt-1 text-sm text-red-600">
+                        {{ $message }}
+                    </p>
+                @enderror
+            </div>
+
+            <div>
+                <label
+                    for="quantity"
+                    class="block font-semibold text-gray-900"
+                >
+                    Quantity
+                </label>
+
+                <input
+                    id="quantity"
+                    name="quantity"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value="{{ old('quantity', 1) }}"
+                    class="mt-2 w-28 rounded-xl border-gray-300
+                           focus:border-gray-900 focus:ring-gray-900"
+                >
+
+                @error('quantity')
+                    <p class="mt-1 text-sm text-red-600">
+                        {{ $message }}
+                    </p>
+                @enderror
+            </div>
+
+            <button
+                type="submit"
+                class="w-full rounded-full bg-gray-950 px-7 py-4
+                       text-lg font-semibold text-white
+                       transition hover:bg-rose-600"
+            >
+                Add to Cart
+            </button>
+        </form>
+    @else
+        <div class="rounded-xl bg-red-50 p-4 text-red-700">
+            This product is currently out of stock.
+        </div>
+    @endif
+</div>
 
                 <div class="mt-8 rounded-xl bg-amber-50 p-4
                             text-sm text-amber-800">

@@ -74,6 +74,25 @@
             </div>
 
             <div class="flex items-center gap-3">
+                @php
+    $cartCount = collect(session('cart', []))->sum('quantity');
+@endphp
+
+<a
+    href="{{ route('cart.index') }}"
+    class="relative rounded-full p-2 text-gray-700 hover:bg-gray-100"
+    aria-label="Shopping cart"
+>
+    <span class="text-xl">🛒</span>
+
+    @if ($cartCount > 0)
+        <span class="absolute -right-1 -top-1 flex h-5 min-w-5
+                     items-center justify-center rounded-full bg-rose-600
+                     px-1 text-xs font-bold text-white">
+            {{ $cartCount }}
+        </span>
+    @endif
+</a>
                 @auth
                     @if (auth()->user()->isAdmin())
                         <a
