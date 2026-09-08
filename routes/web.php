@@ -1,5 +1,5 @@
 <?php
-
+use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -28,6 +28,8 @@ Route::middleware(['auth', 'admin'])
 
         Route::resource('categories', CategoryController::class)
             ->except('show');
+            Route::resource('products', ProductController::class)
+    ->except('show');
     });
     
 require __DIR__.'/auth.php';

@@ -11,11 +11,37 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
-                    <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
-                        {{ __('Dashboard') }}
-                    </x-nav-link>
-                </div>
+              <div class="hidden space-x-8 sm:-my-px sm:ms-10 sm:flex">
+    <x-nav-link
+        :href="route('dashboard')"
+        :active="request()->routeIs('dashboard')"
+    >
+        {{ __('Dashboard') }}
+    </x-nav-link>
+
+    @if (auth()->user()->isAdmin())
+        <x-nav-link
+            :href="route('admin.dashboard')"
+            :active="request()->routeIs('admin.dashboard')"
+        >
+            Admin
+        </x-nav-link>
+
+        <x-nav-link
+            :href="route('admin.categories.index')"
+            :active="request()->routeIs('admin.categories.*')"
+        >
+            Categories
+        </x-nav-link>
+
+        <x-nav-link
+            :href="route('admin.products.index')"
+            :active="request()->routeIs('admin.products.*')"
+        >
+            Products
+        </x-nav-link>
+    @endif
+</div>
             </div>
 
             <!-- Settings Dropdown -->
