@@ -1,12 +1,18 @@
 <?php
+use App\Http\Controllers\StorefrontController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\CategoryController;
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [StorefrontController::class, 'home'])
+    ->name('store.home');
+
+Route::get('/shop', [StorefrontController::class, 'index'])
+    ->name('store.products.index');
+
+Route::get('/shop/{product}', [StorefrontController::class, 'show'])
+    ->name('store.products.show');
 
 Route::get('/dashboard', function () {
     return view('dashboard');
