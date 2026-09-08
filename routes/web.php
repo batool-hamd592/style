@@ -4,6 +4,7 @@ use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\CategoryController;
 Route::get('/', [StorefrontController::class, 'home'])
@@ -52,4 +53,16 @@ Route::delete('/cart/{variant}', [CartController::class, 'destroy'])
 
 Route::delete('/cart', [CartController::class, 'clear'])
     ->name('cart.clear');    
+    Route::middleware('auth')->group(function () {
+    Route::get('/checkout', [CheckoutController::class, 'index'])
+        ->name('checkout.index');
+
+    Route::post('/checkout', [CheckoutController::class, 'store'])
+        ->name('checkout.store');
+
+    Route::get(
+        '/checkout/success/{order}',
+        [CheckoutController::class, 'success']
+    )->name('checkout.success');
+});
 require __DIR__.'/auth.php';
