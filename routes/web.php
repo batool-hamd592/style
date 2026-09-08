@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\CategoryController;
 Route::get('/', function () {
     return view('welcome');
 });
@@ -20,7 +21,13 @@ Route::middleware(['auth', 'admin'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
-        Route::get('/dashboard', [AdminDashboardController::class, 'index'])
-            ->name('dashboard');
+        Route::get(
+            '/dashboard',
+            [AdminDashboardController::class, 'index']
+        )->name('dashboard');
+
+        Route::resource('categories', CategoryController::class)
+            ->except('show');
     });
+    
 require __DIR__.'/auth.php';
