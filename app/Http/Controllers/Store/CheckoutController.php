@@ -4,22 +4,27 @@ namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PlaceOrderRequest;
+use App\Mail\OrderConfirmed;
 use App\Models\Order;
 use App\Models\ProductVariant;
+use App\Services\CartService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 use Throwable;
 
 class CheckoutController extends Controller
 {
-    public function index(): View|RedirectResponse
-    {
-        $cart = session('cart', []);
+    public function index(
+        CartService $cartService
+    ): View|RedirectResponse {
+        $cart = $cartService->items();
 
-        if (empty($cart)) {
+        if ($cart->isEmpty()) {
             return redirect()
                 ->route('cart.index')
                 ->with('error', 'Your cart is empty.');
@@ -46,11 +51,12 @@ class CheckoutController extends Controller
     }
 
     public function store(
-        PlaceOrderRequest $request
+        PlaceOrderRequest $request,
+        CartService $cartService
     ): RedirectResponse {
-        $cart = session('cart', []);
+        $cart = $cartService->items();
 
-        if (empty($cart)) {
+        if ($cart->isEmpty()) {
             return redirect()
                 ->route('cart.index')
                 ->with('error', 'Your cart is empty.');
@@ -59,7 +65,7 @@ class CheckoutController extends Controller
         try {
             $order = DB::transaction(
                 function () use ($request, $cart): Order {
-                    $variantIds = collect($cart)
+                    $variantIds = $cart
                         ->pluck('variant_id')
                         ->all();
 
@@ -78,7 +84,11 @@ class CheckoutController extends Controller
                             $cartItem['variant_id']
                         );
 
-                        if (! $variant || ! $variant->product->is_active) {
+                        if (
+                            ! $variant
+                            || ! $variant->product
+                            || ! $variant->product->is_active
+                        ) {
                             throw new \RuntimeException(
                                 "{$cartItem['name']} is no longer available."
                             );
@@ -86,15 +96,22 @@ class CheckoutController extends Controller
 
                         $quantity = (int) $cartItem['quantity'];
 
-                        if ($quantity < 1 || $quantity > $variant->stock) {
+                        if (
+                            $quantity < 1
+                            || $quantity > $variant->stock
+                        ) {
                             throw new \RuntimeException(
-                                "The requested quantity for " .
+                                'The requested quantity for ' .
                                 "{$variant->product->name} is unavailable."
                             );
                         }
 
-                        $unitPrice = (float) $variant->product->price;
-                        $itemSubtotal = $unitPrice * $quantity;
+                        $unitPrice =
+                            (float) $variant->product->price;
+
+                        $itemSubtotal =
+                            $unitPrice * $quantity;
+
                         $subtotal += $itemSubtotal;
 
                         $orderItems->push([
@@ -110,30 +127,58 @@ class CheckoutController extends Controller
 
                     $order = Order::create([
                         'user_id' => $request->user()->id,
-                        'order_number' => $this->generateOrderNumber(),
+
+                        'order_number' =>
+                            $this->generateOrderNumber(),
+
                         'customer_name' =>
-                            $request->validated('customer_name'),
-                        'phone' => $request->validated('phone'),
-                        'city' => $request->validated('city'),
-                        'address' => $request->validated('address'),
+                            $request->validated(
+                                'customer_name'
+                            ),
+
+                        'phone' =>
+                            $request->validated('phone'),
+
+                        'city' =>
+                            $request->validated('city'),
+
+                        'address' =>
+                            $request->validated('address'),
+
                         'total_amount' => $total,
                         'status' => 'pending',
-                        'payment_method' => 'cash_on_delivery',
-                        'notes' => $request->validated('notes'),
+
+                        'payment_method' =>
+                            'cash_on_delivery',
+
+                        'notes' =>
+                            $request->validated('notes'),
                     ]);
 
                     foreach ($orderItems as $item) {
                         $variant = $item['variant'];
 
                         $order->items()->create([
-                            'product_id' => $variant->product->id,
-                            'product_variant_id' => $variant->id,
-                            'product_name' => $variant->product->name,
+                            'product_id' =>
+                                $variant->product->id,
+
+                            'product_variant_id' =>
+                                $variant->id,
+
+                            'product_name' =>
+                                $variant->product->name,
+
                             'size' => $variant->size,
                             'color' => $variant->color,
-                            'unit_price' => $item['unit_price'],
-                            'quantity' => $item['quantity'],
-                            'subtotal' => $item['subtotal'],
+
+                            'unit_price' =>
+                                $item['unit_price'],
+
+                            'quantity' =>
+                                $item['quantity'],
+
+                            'subtotal' =>
+                                $item['subtotal'],
                         ]);
 
                         $variant->decrement(
@@ -149,30 +194,49 @@ class CheckoutController extends Controller
         } catch (Throwable $exception) {
             return redirect()
                 ->route('cart.index')
-                ->with('error', $exception->getMessage());
+                ->with(
+                    'error',
+                    $exception->getMessage()
+                );
         }
 
-        session()->forget('cart');
+        $order->load('items');
+
+        try {
+            Mail::to($request->user()->email)
+                ->queue(new OrderConfirmed($order));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        $cartService->clear();
 
         return redirect()
             ->route('checkout.success', $order)
-            ->with('success', 'Your order was placed successfully.');
+            ->with(
+                'success',
+                'Your order was placed successfully.'
+            );
     }
 
     public function success(Order $order): View
     {
         abort_unless(
-            $order->user_id === auth()->id(),
+            $order->user_id === Auth::id(),
             403
         );
 
         $order->load('items');
 
-        return view('store.checkout.success', compact('order'));
+        return view(
+            'store.checkout.success',
+            compact('order')
+        );
     }
 
-    private function prepareCartItems(array $cart): array
-    {
+    private function prepareCartItems(
+        array|Collection $cart
+    ): array {
         $variantIds = collect($cart)
             ->pluck('variant_id')
             ->all();
@@ -186,9 +250,15 @@ class CheckoutController extends Controller
         $items = collect();
 
         foreach ($cart as $cartItem) {
-            $variant = $variants->get($cartItem['variant_id']);
+            $variant = $variants->get(
+                $cartItem['variant_id']
+            );
 
-            if (! $variant || ! $variant->product->is_active) {
+            if (
+                ! $variant
+                || ! $variant->product
+                || ! $variant->product->is_active
+            ) {
                 return [
                     collect(),
                     "{$cartItem['name']} is no longer available.",
@@ -196,6 +266,14 @@ class CheckoutController extends Controller
             }
 
             $quantity = (int) $cartItem['quantity'];
+
+            if ($quantity < 1) {
+                return [
+                    collect(),
+                    "The quantity for " .
+                    "{$variant->product->name} is invalid.",
+                ];
+            }
 
             if ($quantity > $variant->stock) {
                 return [
@@ -205,7 +283,8 @@ class CheckoutController extends Controller
                 ];
             }
 
-            $unitPrice = (float) $variant->product->price;
+            $unitPrice =
+                (float) $variant->product->price;
 
             $items->push([
                 'variant' => $variant,
@@ -222,7 +301,8 @@ class CheckoutController extends Controller
     private function generateOrderNumber(): string
     {
         do {
-            $number = 'SH-' .
+            $number =
+                'SH-' .
                 now()->format('Ymd') .
                 '-' .
                 Str::upper(Str::random(6));

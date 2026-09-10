@@ -4,72 +4,61 @@ namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Services\WishlistService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\View\View;
 
 class WishlistController extends Controller
 {
-    public function index(): View
-    {
-        $wishlistIds = session('wishlist', []);
-
-        $products = Product::query()
-            ->with('category')
-            ->withSum('variants', 'stock')
-            ->whereIn('id', $wishlistIds)
-            ->where('is_active', true)
-            ->whereHas(
-                'category',
-                fn ($query) => $query->where('is_active', true)
-            )
-            ->latest()
-            ->get();
-
-        return view('store.wishlist.index', compact('products'));
+    public function __construct(
+        private readonly WishlistService $wishlistService
+    ) {
     }
 
-    public function toggle(Product $product): RedirectResponse
+    public function index(): View
     {
+        $products = $this->wishlistService->products();
+
+        return view(
+            'store.wishlist.index',
+            compact('products')
+        );
+    }
+
+    public function toggle(
+        Request $request,
+        Product $product
+    ): JsonResponse|RedirectResponse {
         abort_unless(
-            $product->is_active && $product->category->is_active,
+            $product->is_active
+            && $product->category
+            && $product->category->is_active,
             404
         );
 
-        $wishlist = session('wishlist', []);
+        $added = $this->wishlistService->toggle($product);
 
-        if (in_array($product->id, $wishlist, true)) {
-            $wishlist = array_values(
-                array_filter(
-                    $wishlist,
-                    fn ($id) => $id !== $product->id
-                )
-            );
+        $message = $added
+            ? 'Product added to your wishlist.'
+            : 'Product removed from your wishlist.';
 
-            $message = 'Product removed from your wishlist.';
-        } else {
-            $wishlist[] = $product->id;
-            $wishlist = array_values(array_unique($wishlist));
-
-            $message = 'Product added to your wishlist.';
+        if ($request->expectsJson()) {
+            return response()->json([
+                'added' => $added,
+                'count' => $this->wishlistService->count(),
+                'message' => $message,
+            ]);
         }
-
-        session()->put('wishlist', $wishlist);
 
         return back()->with('success', $message);
     }
 
-    public function destroy(Product $product): RedirectResponse
-    {
-        $wishlist = session('wishlist', []);
-
-        $wishlist = array_values(
-            array_filter(
-                $wishlist,
-                fn ($id) => $id !== $product->id
-            )
-        );
-
-        session()->put('wishlist', $wishlist);
+    public function destroy(
+        Product $product
+    ): RedirectResponse {
+        $this->wishlistService->remove($product);
 
         return back()->with(
             'success',
@@ -79,10 +68,13 @@ class WishlistController extends Controller
 
     public function clear(): RedirectResponse
     {
-        session()->forget('wishlist');
+        $this->wishlistService->clear();
 
         return redirect()
             ->route('wishlist.index')
-            ->with('success', 'Your wishlist has been cleared.');
+            ->with(
+                'success',
+                'Your wishlist has been cleared.'
+            );
     }
 }

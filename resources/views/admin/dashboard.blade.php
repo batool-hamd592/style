@@ -1,16 +1,4 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="text-xl font-semibold text-gray-800">
-                Admin Dashboard
-            </h2>
-
-            <span class="rounded-full bg-gray-900 px-3 py-1 text-sm text-white">
-                {{ auth()->user()->name }}
-            </span>
-        </div>
-    </x-slot>
-
     <div class="py-12">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div class="mb-8">
@@ -63,6 +51,122 @@
                         {{ $stats['customers'] }}
                     </p>
                 </div>
+            </div>
+
+            <div class="mb-5 mt-10">
+                <h2 class="text-2xl font-bold text-gray-900">
+                    Order Status
+                </h2>
+
+                <p class="mt-1 text-sm text-gray-600">
+                    Select a status to view its orders.
+                </p>
+            </div>
+
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <a
+                    href="{{ route('admin.orders.index', [
+                        'status' => 'pending'
+                    ]) }}"
+                    class="rounded-xl border-l-4 border-amber-500
+                           bg-white p-6 shadow-sm transition
+                           hover:-translate-y-1 hover:shadow-md"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">
+                                Pending
+                            </p>
+
+                            <p
+                                class="mt-2 text-3xl font-bold
+                                       text-amber-600"
+                            >
+                                {{ $stats['pending_orders'] }}
+                            </p>
+                        </div>
+
+                        <span class="text-3xl">⏳</span>
+                    </div>
+                </a>
+
+                <a
+                    href="{{ route('admin.orders.index', [
+                        'status' => 'processing'
+                    ]) }}"
+                    class="rounded-xl border-l-4 border-blue-500
+                           bg-white p-6 shadow-sm transition
+                           hover:-translate-y-1 hover:shadow-md"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">
+                                Processing
+                            </p>
+
+                            <p
+                                class="mt-2 text-3xl font-bold
+                                       text-blue-600"
+                            >
+                                {{ $stats['processing_orders'] }}
+                            </p>
+                        </div>
+
+                        <span class="text-3xl">📦</span>
+                    </div>
+                </a>
+
+                <a
+                    href="{{ route('admin.orders.index', [
+                        'status' => 'completed'
+                    ]) }}"
+                    class="rounded-xl border-l-4 border-green-500
+                           bg-white p-6 shadow-sm transition
+                           hover:-translate-y-1 hover:shadow-md"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">
+                                Completed
+                            </p>
+
+                            <p
+                                class="mt-2 text-3xl font-bold
+                                       text-green-600"
+                            >
+                                {{ $stats['completed_orders'] }}
+                            </p>
+                        </div>
+
+                        <span class="text-3xl">✅</span>
+                    </div>
+                </a>
+
+                <a
+                    href="{{ route('admin.orders.index', [
+                        'status' => 'cancelled'
+                    ]) }}"
+                    class="rounded-xl border-l-4 border-red-500
+                           bg-white p-6 shadow-sm transition
+                           hover:-translate-y-1 hover:shadow-md"
+                >
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-500">
+                                Cancelled
+                            </p>
+
+                            <p
+                                class="mt-2 text-3xl font-bold
+                                       text-red-600"
+                            >
+                                {{ $stats['cancelled_orders'] }}
+                            </p>
+                        </div>
+
+                        <span class="text-3xl">✕</span>
+                    </div>
+                </a>
             </div>
         </div>
     </div>

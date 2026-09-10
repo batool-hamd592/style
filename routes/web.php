@@ -8,6 +8,7 @@ use App\Http\Controllers\Store\WishlistController;
 use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Store\OrderController as CustomerOrderController;
 use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 Route::get('/', [StorefrontController::class, 'home'])
@@ -20,7 +21,11 @@ Route::get('/shop/{product}', [StorefrontController::class, 'show'])
     ->name('store.products.show');
 
 Route::get('/dashboard', function () {
-    return view('dashboard');
+    if (request()->user()->isAdmin()) {
+        return redirect()->route('admin.dashboard');
+    }
+
+    return redirect()->route('store.home');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware('auth')->group(function () {
@@ -52,6 +57,10 @@ Route::patch(
     '/orders/{order}/status',
     [AdminOrderController::class, 'updateStatus']
 )->name('orders.status');
+Route::get(
+    '/inventory',
+    [InventoryController::class, 'index']
+)->name('inventory.index');
     });
 Route::get('/cart', [CartController::class, 'index'])
     ->name('cart.index');

@@ -16,9 +16,14 @@
 </head>
 
 <body class="bg-stone-50 text-gray-900">
-    <header class="sticky top-0 z-50 border-b border-gray-200 bg-white/95">
-        <nav class="mx-auto flex max-w-7xl items-center justify-between
-                    px-4 py-4 sm:px-6 lg:px-8">
+    <header
+        class="sticky top-0 z-50 border-b
+               border-gray-200 bg-white/95"
+    >
+        <nav
+            class="mx-auto flex max-w-7xl items-center
+                   justify-between px-4 py-4 sm:px-6 lg:px-8"
+        >
             <a
                 href="{{ route('store.home') }}"
                 class="text-2xl font-black tracking-tight"
@@ -75,59 +80,107 @@
 
             <div class="flex items-center gap-3">
                 @php
-    $cartCount = collect(session('cart', []))->sum('quantity');
-@endphp
+                    $cartCount = app(
+                        \App\Services\CartService::class
+                    )->count();
+                @endphp
 
-<a
-    href="{{ route('cart.index') }}"
-    class="relative rounded-full p-2 text-gray-700 hover:bg-gray-100"
-    aria-label="Shopping cart"
->
-    <span class="text-xl">🛒</span>
+                <a
+                    href="{{ route('cart.index') }}"
+                    class="relative rounded-full p-2
+                           text-gray-700 hover:bg-gray-100"
+                    aria-label="Shopping cart"
+                >
+                    <span class="text-xl">🛒</span>
 
-    @if ($cartCount > 0)
-        <span class="absolute -right-1 -top-1 flex h-5 min-w-5
-                     items-center justify-center rounded-full bg-rose-600
-                     px-1 text-xs font-bold text-white">
-            {{ $cartCount }}
-        </span>
-    @endif
-</a>
-@php
-    $wishlistCount = count(session('wishlist', []));
-@endphp
+                    @if ($cartCount > 0)
+                        <span
+                            class="absolute -right-1 -top-1
+                                   flex h-5 min-w-5 items-center
+                                   justify-center rounded-full
+                                   bg-rose-600 px-1 text-xs
+                                   font-bold text-white"
+                        >
+                            {{ $cartCount }}
+                        </span>
+                    @endif
+                </a>
 
-<a
-    href="{{ route('wishlist.index') }}"
-    class="relative rounded-full p-2 text-gray-700 hover:bg-gray-100"
-    aria-label="Wishlist"
->
-    <span class="text-xl">♡</span>
+                @php
+                    $wishlistCount = app(
+                        \App\Services\WishlistService::class
+                    )->count();
+                @endphp
 
-    @if ($wishlistCount > 0)
-        <span class="absolute -right-1 -top-1 flex h-5 min-w-5
-                     items-center justify-center rounded-full bg-rose-600
-                     px-1 text-xs font-bold text-white">
-            {{ $wishlistCount }}
-        </span>
-    @endif
-</a>
+                <a
+                    href="{{ route('wishlist.index') }}"
+                    class="relative rounded-full p-2
+                           text-gray-700 hover:bg-gray-100"
+                    aria-label="Wishlist"
+                    x-data="{
+                        count: {{ $wishlistCount }}
+                    }"
+                    x-on:wishlist-updated.window="
+                        count = $event.detail.count
+                    "
+                >
+                    <span class="text-xl">♡</span>
+
+                    <span
+                        x-show="count > 0"
+                        x-text="count"
+                        style="{{ $wishlistCount > 0
+                            ? ''
+                            : 'display: none;' }}"
+                        class="absolute -right-1 -top-1
+                               flex h-5 min-w-5 items-center
+                               justify-center rounded-full
+                               bg-rose-600 px-1 text-xs
+                               font-bold text-white"
+                    ></span>
+                </a>
+
                 @auth
+                    <a
+                        href="{{ route('profile.edit') }}"
+                        class="text-sm font-semibold text-gray-700
+                               hover:text-rose-600"
+                    >
+                        My Account
+                    </a>
+
                     @if (auth()->user()->isAdmin())
                         <a
                             href="{{ route('admin.dashboard') }}"
-                            class="text-sm font-semibold text-gray-700"
+                            class="text-sm font-semibold text-gray-700
+                                   hover:text-rose-600"
                         >
                             Admin
                         </a>
                     @else
                         <a
                             href="{{ route('orders.index') }}"
-                            class="text-sm font-semibold text-gray-700"
+                            class="text-sm font-semibold text-gray-700
+                                   hover:text-rose-600"
                         >
-                         My Orders
+                            My Orders
                         </a>
                     @endif
+
+                    <form
+                        method="POST"
+                        action="{{ route('logout') }}"
+                    >
+                        @csrf
+
+                        <button
+                            type="submit"
+                            class="text-sm font-semibold text-gray-700
+                                   hover:text-rose-600"
+                        >
+                            Log Out
+                        </button>
+                    </form>
                 @else
                     <a
                         href="{{ route('login') }}"
@@ -153,8 +206,10 @@
     </main>
 
     <footer class="mt-20 bg-gray-950 text-gray-300">
-        <div class="mx-auto grid max-w-7xl gap-8 px-4 py-12
-                    sm:px-6 md:grid-cols-3 lg:px-8">
+        <div
+            class="mx-auto grid max-w-7xl gap-8 px-4 py-12
+                   sm:px-6 md:grid-cols-3 lg:px-8"
+        >
             <div>
                 <p class="text-2xl font-black text-white">
                     STYLE<span class="text-rose-500">HUB</span>
@@ -166,32 +221,42 @@
             </div>
 
             <div>
-                <h3 class="font-semibold text-white">Shop</h3>
+                <h3 class="font-semibold text-white">
+                    Shop
+                </h3>
 
                 <div class="mt-3 space-y-2 text-sm">
-                    <a class="block hover:text-white"
-                       href="{{ route('store.products.index') }}">
+                    <a
+                        class="block hover:text-white"
+                        href="{{ route('store.products.index') }}"
+                    >
                         All Products
                     </a>
 
-                    <a class="block hover:text-white"
-                       href="{{ route('store.products.index', [
-                           'audience' => 'women'
-                       ]) }}">
+                    <a
+                        class="block hover:text-white"
+                        href="{{ route('store.products.index', [
+                            'audience' => 'women'
+                        ]) }}"
+                    >
                         Women
                     </a>
 
-                    <a class="block hover:text-white"
-                       href="{{ route('store.products.index', [
-                           'audience' => 'men'
-                       ]) }}">
+                    <a
+                        class="block hover:text-white"
+                        href="{{ route('store.products.index', [
+                            'audience' => 'men'
+                        ]) }}"
+                    >
                         Men
                     </a>
                 </div>
             </div>
 
             <div>
-                <h3 class="font-semibold text-white">Payment</h3>
+                <h3 class="font-semibold text-white">
+                    Payment
+                </h3>
 
                 <p class="mt-3 text-sm text-gray-400">
                     Secure cash on delivery across Jordan.
@@ -199,8 +264,10 @@
             </div>
         </div>
 
-        <div class="border-t border-gray-800 py-5 text-center
-                    text-sm text-gray-500">
+        <div
+            class="border-t border-gray-800 py-5
+                   text-center text-sm text-gray-500"
+        >
             © {{ date('Y') }} StyleHub. All rights reserved.
         </div>
     </footer>

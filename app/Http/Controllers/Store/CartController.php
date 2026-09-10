@@ -6,21 +6,42 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\AddToCartRequest;
 use App\Http\Requests\UpdateCartRequest;
 use App\Models\ProductVariant;
+use App\Services\CartService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class CartController extends Controller
 {
+    public function __construct(
+        private readonly CartService $cartService
+    ) {
+    }
+
     public function index(): View
     {
-        $cart = collect(session('cart', []));
+        $cart = $this->cartService->items();
+        $total = $this->cartService->total();
 
-        $total = $cart->sum(
-            fn (array $item) =>
-                (float) $item['price'] * (int) $item['quantity']
+        $productIds = $cart
+            ->pluck('product_id')
+            ->unique()
+            ->values();
+
+        $variantsByProduct = ProductVariant::query()
+            ->whereIn('product_id', $productIds)
+            ->orderBy('color')
+            ->orderBy('size')
+            ->get()
+            ->groupBy('product_id');
+
+        return view(
+            'store.cart.index',
+            compact(
+                'cart',
+                'total',
+                'variantsByProduct'
+            )
         );
-
-        return view('store.cart.index', compact('cart', 'total'));
     }
 
     public function store(
@@ -28,28 +49,22 @@ class CartController extends Controller
     ): RedirectResponse {
         $variant = ProductVariant::query()
             ->with('product')
-            ->findOrFail($request->validated('variant_id'));
+            ->findOrFail(
+                $request->validated('variant_id')
+            );
 
-        if (! $variant->product->is_active) {
+        if (! $variant->product?->is_active) {
             return back()->with(
                 'error',
                 'This product is currently unavailable.'
             );
         }
 
-        if ($variant->stock < 1) {
-            return back()->with(
-                'error',
-                'This product option is out of stock.'
-            );
-        }
+        $quantity = $request->integer('quantity');
 
-        $cart = session('cart', []);
-        $key = (string) $variant->id;
-
-        $currentQuantity = $cart[$key]['quantity'] ?? 0;
-        $requestedQuantity = $request->integer('quantity');
-        $newQuantity = $currentQuantity + $requestedQuantity;
+        $newQuantity =
+            $this->cartService->currentQuantity($variant)
+            + $quantity;
 
         if ($newQuantity > $variant->stock) {
             return back()->with(
@@ -65,79 +80,128 @@ class CartController extends Controller
             );
         }
 
-        $cart[$key] = [
-            'variant_id' => $variant->id,
-            'product_id' => $variant->product->id,
-            'name' => $variant->product->name,
-            'slug' => $variant->product->slug,
-            'image' => $variant->product->image,
-            'size' => $variant->size,
-            'color' => $variant->color,
-            'price' => (float) $variant->product->price,
-            'quantity' => $newQuantity,
-            'stock' => $variant->stock,
-        ];
-
-        session()->put('cart', $cart);
+        $this->cartService->add(
+            $variant,
+            $quantity
+        );
 
         return redirect()
             ->route('cart.index')
-            ->with('success', 'Product added to your cart.');
+            ->with(
+                'success',
+                'Product added to your cart.'
+            );
     }
 
     public function update(
         UpdateCartRequest $request,
         ProductVariant $variant
     ): RedirectResponse {
-        $cart = session('cart', []);
-        $key = (string) $variant->id;
+        $newVariant = ProductVariant::query()
+            ->with('product')
+            ->findOrFail(
+                $request->validated('variant_id')
+            );
 
-        if (! isset($cart[$key])) {
+        if (
+            $newVariant->product_id
+            !== $variant->product_id
+        ) {
             return redirect()
                 ->route('cart.index')
-                ->with('error', 'Cart item was not found.');
+                ->with(
+                    'error',
+                    'The selected option does not belong '
+                    . 'to this product.'
+                );
+        }
+
+        if (! $newVariant->product?->is_active) {
+            return redirect()
+                ->route('cart.index')
+                ->with(
+                    'error',
+                    'This product is currently unavailable.'
+                );
         }
 
         $quantity = $request->integer('quantity');
 
-        if ($quantity > $variant->stock) {
-            return back()->with(
-                'error',
-                "Only {$variant->stock} items are available."
-            );
+        $existingQuantity = 0;
+
+        if ($newVariant->id !== $variant->id) {
+            $existingQuantity =
+                $this->cartService
+                    ->currentQuantity($newVariant);
         }
 
-        $cart[$key]['quantity'] = $quantity;
-        $cart[$key]['stock'] = $variant->stock;
+        $finalQuantity =
+            $existingQuantity + $quantity;
 
-        session()->put('cart', $cart);
+        if ($finalQuantity > $newVariant->stock) {
+            return redirect()
+                ->route('cart.index')
+                ->with(
+                    'error',
+                    "Only {$newVariant->stock} items "
+                    . 'of the selected option are available.'
+                );
+        }
+
+        if ($finalQuantity > 10) {
+            return redirect()
+                ->route('cart.index')
+                ->with(
+                    'error',
+                    'The maximum quantity per option is 10.'
+                );
+        }
+
+        $updated = $this->cartService->update(
+            $variant,
+            $newVariant,
+            $quantity
+        );
+
+        if (! $updated) {
+            return redirect()
+                ->route('cart.index')
+                ->with(
+                    'error',
+                    'Cart item was not found.'
+                );
+        }
 
         return redirect()
             ->route('cart.index')
-            ->with('success', 'Cart quantity updated.');
+            ->with(
+                'success',
+                'Cart item updated successfully.'
+            );
     }
 
     public function destroy(
         ProductVariant $variant
     ): RedirectResponse {
-        $cart = session('cart', []);
-        $key = (string) $variant->id;
-
-        unset($cart[$key]);
-
-        session()->put('cart', $cart);
+        $this->cartService->remove($variant);
 
         return redirect()
             ->route('cart.index')
-            ->with('success', 'Product removed from your cart.');
+            ->with(
+                'success',
+                'Product removed from your cart.'
+            );
     }
 
     public function clear(): RedirectResponse
     {
-        session()->forget('cart');
+        $this->cartService->clear();
 
         return redirect()
             ->route('cart.index')
-            ->with('success', 'Your cart has been cleared.');
+            ->with(
+                'success',
+                'Your cart has been cleared.'
+            );
     }
 }
