@@ -20,9 +20,9 @@ An e-commerce web application built with Laravel as a graduation project at Robo
 
 ## Screenshots
 
-> Add 3–4 screenshots here: home page, product page, cart, admin dashboard.
->
-> `![Home page](docs/home.png)`
+![Home page](home.png)
+![Cart](cart.png)
+![Admin dashboard](admin.png)
 
 ## Getting Started
 
